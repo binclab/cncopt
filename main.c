@@ -17,6 +17,8 @@
 
 #include <webkit/webkit.h>
 
+gboolean zoom = FALSE;
+
 static void send_command(GtkEntry *entry, GtkEntryIconPosition position, gpointer data)
 {
     GtkEntryBuffer *buffer = gtk_entry_get_buffer(entry);
@@ -29,23 +31,15 @@ static void send_command(GtkEntry *entry, GtkEntryIconPosition position, gpointe
     gtk_entry_buffer_delete_text(buffer, 0, -1);
 }
 
-static void setup_webview(WebKitWebView *webview, WebKitLoadEvent load_event, gpointer user_data)
+static gboolean filter_events(GtkWidget *widget, GdkEvent *event, gpointer user_data)
 {
-    const char *script = "window.addEventListener('wheel', (e) => {"
-                         "    if(e.ctrlKey) e.preventDefault();"
-                         "}, { passive: false });";
-    switch (load_event)
-    {
-    case WEBKIT_LOAD_STARTED:
-        break;
-    case WEBKIT_LOAD_REDIRECTED:
-        break;
-    case WEBKIT_LOAD_COMMITTED:
-        break;
-    case WEBKIT_LOAD_FINISHED:
-        webkit_web_view_evaluate_javascript(webview, script, -1, NULL, NULL, NULL, NULL, NULL);
-        break;
-    }
+    printf("%i %i \n", zoom, gdk_event_get_event_type(event));
+    return FALSE; // Stop event propagation
+}
+
+static void prevent_zoom(GtkGestureZoom* gesture, gdouble scale, gpointer user_data) {
+
+
 }
 
 static void create_window(GtkApplication *app, gpointer storage)
@@ -55,10 +49,12 @@ static void create_window(GtkApplication *app, gpointer storage)
     GtkWidget *webview = webkit_web_view_new();
     GtkWidget *headerbar = gtk_header_bar_new();
     GtkWidget *console = gtk_entry_new();
+    GtkEventController *controller = (GtkEventController*)gtk_gesture_zoom_new();
     gtk_header_bar_set_show_title_buttons((GtkHeaderBar *)headerbar, TRUE);
     gtk_header_bar_pack_start((GtkHeaderBar *)headerbar, console);
     gtk_widget_set_size_request(console, 400, -1);
     gtk_entry_set_icon_from_icon_name((GtkEntry *)console, GTK_ENTRY_ICON_SECONDARY, "mail-replied-symbolic");
+    gtk_widget_add_controller(window, controller);
     gtk_window_maximize((GtkWindow *)window);
     gtk_window_set_child((GtkWindow *)window, webview);
     gtk_window_set_titlebar((GtkWindow *)window, headerbar);
@@ -72,11 +68,12 @@ static void create_window(GtkApplication *app, gpointer storage)
     webkit_cookie_manager_set_persistent_storage(cookiejar, (gchar *)storage, WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
     WebKitSettings *settings = webkit_web_view_get_settings((WebKitWebView *)webview);
     webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
+    webkit_settings_set_enable_smooth_scrolling(settings, FALSE);
+    webkit_settings_set_zoom_text_only(settings, TRUE);
     webkit_web_view_load_uri((WebKitWebView *)webview, uri);
     g_signal_connect(console, "icon-press", (GCallback)send_command, webview);
-    /*GtkGesture *controller = gtk_gesture_zoom_new();
+    g_signal_connect(webview, "event", (GCallback)filter_events, NULL);
     g_signal_connect(controller, "scale-changed", (GCallback)prevent_zoom, NULL);
-    gtk_widget_add_controller(webview, (GtkEventController*)controller);*/
 }
 
 int main(int response, char **name)
