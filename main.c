@@ -17,7 +17,29 @@
 
 #include <webkit/webkit.h>
 
-gboolean zoom = FALSE;
+static void inject_scripts(WebKitWebView *webview, WebKitLoadEvent event, gpointer data)
+{
+    switch (event)
+    {
+    case WEBKIT_LOAD_STARTED:
+        break;
+    case WEBKIT_LOAD_REDIRECTED:
+        break;
+    case WEBKIT_LOAD_COMMITTED:
+        break;
+    case WEBKIT_LOAD_FINISHED:
+        if (strstr(webkit_web_view_get_uri(webview), ".alliances.commandandconquer.com") != NULL)
+        {
+            GError *error = NULL;
+            gchar *path = "/com/binclab/cncta/script.js";
+            GBytes *bytes = g_resources_lookup_data(path, G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+            gchar *script = g_strndup(g_bytes_get_data(bytes, NULL), g_bytes_get_size(bytes));
+            webkit_web_view_evaluate_javascript(webview, script, -1, NULL, NULL, NULL, NULL, NULL);
+            g_bytes_unref(bytes);
+        }
+        break;
+    }
+}
 
 static void send_command(GtkEntry *entry, GtkEntryIconPosition position, gpointer data)
 {
@@ -26,21 +48,10 @@ static void send_command(GtkEntry *entry, GtkEntryIconPosition position, gpointe
     const char *script = gtk_entry_buffer_get_text(buffer);
     if (position == GTK_ENTRY_ICON_SECONDARY)
     {
+
         webkit_web_view_evaluate_javascript(webview, script, -1, NULL, NULL, NULL, NULL, NULL);
     }
     gtk_entry_buffer_delete_text(buffer, 0, -1);
-}
-
-static gboolean filter_events(GtkWidget *widget, GdkEvent *event, gpointer user_data)
-{
-    printf("%i %i \n", zoom, gdk_event_get_event_type(event));
-    return FALSE; // Stop event propagation
-}
-
-static void prevent_zoom(GtkGestureZoom* gesture, gdouble scale, gpointer user_data) {
-
-
-
 }
 
 static void create_window(GtkApplication *app, gpointer storage)
@@ -50,12 +61,10 @@ static void create_window(GtkApplication *app, gpointer storage)
     GtkWidget *webview = webkit_web_view_new();
     GtkWidget *headerbar = gtk_header_bar_new();
     GtkWidget *console = gtk_entry_new();
-    //GtkEventController *controller = (GtkEventController*)gtk_gesture_zoom_new();
     gtk_header_bar_set_show_title_buttons((GtkHeaderBar *)headerbar, TRUE);
     gtk_header_bar_pack_start((GtkHeaderBar *)headerbar, console);
     gtk_widget_set_size_request(console, 400, -1);
     gtk_entry_set_icon_from_icon_name((GtkEntry *)console, GTK_ENTRY_ICON_SECONDARY, "mail-replied-symbolic");
-    //gtk_widget_add_controller(window, controller);
     gtk_window_maximize((GtkWindow *)window);
     gtk_window_set_child((GtkWindow *)window, webview);
     gtk_window_set_titlebar((GtkWindow *)window, headerbar);
@@ -63,18 +72,15 @@ static void create_window(GtkApplication *app, gpointer storage)
     gtk_window_set_title((GtkWindow *)window, "Command & Conquer: Tiberium Alliances");
     gtk_widget_set_size_request(window, 1280, 720);
     gtk_window_set_default_size((GtkWindow *)window, 1280, 720);
-    // WebKitSettings *settings = webkit_web_view_get_settings((WebKitWebView *)webview);
     WebKitNetworkSession *session = webkit_web_view_get_network_session((WebKitWebView *)webview);
     WebKitCookieManager *cookiejar = webkit_network_session_get_cookie_manager(session);
     webkit_cookie_manager_set_persistent_storage(cookiejar, (gchar *)storage, WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
     WebKitSettings *settings = webkit_web_view_get_settings((WebKitWebView *)webview);
-    webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
-    webkit_settings_set_enable_smooth_scrolling(settings, FALSE);
-    webkit_settings_set_zoom_text_only(settings, TRUE);
+    // webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
     webkit_web_view_load_uri((WebKitWebView *)webview, uri);
     g_signal_connect(console, "icon-press", (GCallback)send_command, webview);
-    //g_signal_connect(webview, "event", (GCallback)filter_events, NULL);
-    //g_signal_connect(controller, "scale-changed", (GCallback)prevent_zoom, NULL);
+    g_signal_connect(webview, "load-changed", (GCallback)inject_scripts, NULL);
+    // g_signal_connect(controller, "scale-changed", (GCallback)prevent_zoom, NULL);
 }
 
 int main(int response, char **name)

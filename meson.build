@@ -1,3 +1,4 @@
 project('Command & Conquer', 'c')
 webkitgtkdep = dependency('webkitgtk-6.0')
-executable('cncta', 'main.c', dependencies : [webkitgtkdep])
+subdir('resources')
+executable('cncta', ['main.c', resources], dependencies : [webkitgtkdep])
