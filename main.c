@@ -28,15 +28,17 @@ static void inject_scripts(WebKitWebView *webview, WebKitLoadEvent event, gpoint
     case WEBKIT_LOAD_COMMITTED:
         break;
     case WEBKIT_LOAD_FINISHED:
-        if (strstr(webkit_web_view_get_uri(webview), ".alliances.commandandconquer.com") != NULL)
+        const gchar *uri = webkit_web_view_get_uri(webview);
+        if (strstr(uri, "signin.ea.com") == NULL && strstr(uri, ".alliances.commandandconquer.com/"))
         {
-            GError *error = NULL;
             gchar *path = "/com/binclab/cncta/script.js";
-            GBytes *bytes = g_resources_lookup_data(path, G_RESOURCE_LOOKUP_FLAGS_NONE, &error);
+            GBytes *bytes = g_resources_lookup_data(path, G_RESOURCE_LOOKUP_FLAGS_NONE, NULL);
             gchar *script = g_strndup(g_bytes_get_data(bytes, NULL), g_bytes_get_size(bytes));
             webkit_web_view_evaluate_javascript(webview, script, -1, NULL, NULL, NULL, NULL, NULL);
             g_bytes_unref(bytes);
         }
+        else
+            printf("%s\n", webkit_web_view_get_uri(webview));
         break;
     }
 }
