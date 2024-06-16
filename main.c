@@ -76,7 +76,7 @@ static void create_window(GtkApplication *app, gpointer storage)
     WebKitCookieManager *cookiejar = webkit_network_session_get_cookie_manager(session);
     webkit_cookie_manager_set_persistent_storage(cookiejar, (gchar *)storage, WEBKIT_COOKIE_PERSISTENT_STORAGE_SQLITE);
     WebKitSettings *settings = webkit_web_view_get_settings((WebKitWebView *)webview);
-    // webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
+    webkit_settings_set_enable_write_console_messages_to_stdout(settings, TRUE);
     webkit_web_view_load_uri((WebKitWebView *)webview, uri);
     g_signal_connect(console, "icon-press", (GCallback)send_command, webview);
     g_signal_connect(webview, "load-changed", (GCallback)inject_scripts, NULL);

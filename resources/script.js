@@ -26,4 +26,6 @@
         researchpoints = currentowncity.GetResourceCount(this.ClientLib.Base.EResourceType.ResearchPoints);
         this.ClientLib.Base.Resource.GetResourceGrowPerHour(currentowncity.get_CityCreditsProduction(), false);
     }
+
+    alert("Attention");
 })();
