@@ -14,16 +14,17 @@
     'use strict';
     let cities = [];
     let Data;
-    let Resource;
+    let Base;
     let requirements = [];
     let researchpoints;
 
     function getProdutionInformation() {
-        let credit = 0;
+        let growth = 0;
         for (let index = 0; index < cities.length; index++) {
-            credit = credit + Resource.GetResourceGrowPerHour(cities[index].get_CityCreditsProduction(), false);
+            growth = growth + Base.Resource.GetResourceGrowPerHour(cities[index].get_CityCreditsProduction(), false);
         }
-        console.log(credit);
+        let needed = (requirements[0] - Data.get_Player().GetCreditsCount()) / growth;
+        console.log(needed);
     }
 
     function waitForSetup() {
@@ -31,24 +32,26 @@
             window.setTimeout(waitForSetup, 1000);
         } else {
             Data = window.ClientLib.Data.MainData.GetInstance();
-            Resource = window.ClientLib.Base.Resource;
+            Base = window.ClientLib.Base;
             let faction = Data.get_Player().get_Faction();
             let index = 0;
             let object = Data.get_Cities().get_AllCities().d;
-            let value = ClientLib.Base.ETechName.Research_BaseFound;
-            let techID = ClientLib.Base.Tech.GetTechIdFromTechNameAndFaction(value, faction);
+            let value = Base.ETechName.Research_BaseFound;
+            let techID = Base.Tech.GetTechIdFromTechNameAndFaction(value, faction);
             let research = Data.get_Player().get_PlayerResearch().GetResearchItemFomMdbId(techID);
-            requirements[0] = research.get_NextLevelInfo_Obj().rr[0].c;
-            requirements[1] = research.get_NextLevelInfo_Obj().rr[1].c
-            researchpoints = Data.get_Player().get_ResearchPoints();
-            for (const key in object) {
-                if (Object.hasOwnProperty.call(object, key)) {
-                    cities[index] = object[key];
-                    index++;
+            if (research.get_NextLevelInfo_Obj() !== null) {
+                requirements[0] = research.get_NextLevelInfo_Obj().rr[0].c;
+                requirements[1] = research.get_NextLevelInfo_Obj().rr[1].c
+                researchpoints = Data.get_Player().get_ResearchPoints();
+                for (const key in object) {
+                    if (Object.hasOwnProperty.call(object, key)) {
+                        cities[index] = object[key];
+                        index++;
+                    }
                 }
+                getProdutionInformation();
+                setInterval(getProdutionInformation, 60 * 1000);
             }
-            getProdutionInformation();
-            setInterval(getProdutionInformation, 60 * 1000);
         }
     }
     waitForSetup();
